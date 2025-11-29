@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الجدول الدراسي - مواهب التربية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: system-ui, -apple-system, sans-serif; }
+    .bg-main { background: linear-gradient(135deg,#1e40af,#3b82f6); }
+    .bg-green { background: linear-gradient(135deg,#059669,#10b981); }
+    .bg-orange{ background: linear-gradient(135deg,#ea580c,#f97316); }
+    .bg-red   { background: linear-gradient(135deg,#dc2626,#ef4444); }
+    .card{ transition: transform .2s; } .card:hover{ transform:translateY(-2px); }
+
+    .toast-container{position:fixed;top:20px;right:20px;z-index:9999;pointer-events:none}
+    .toast{background:#fff;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.15);margin-bottom:10px;padding:16px 20px;min-width:300px;max-width:400px;transform:translateX(400px);transition:all .3s cubic-bezier(.68,-.55,.265,1.55);pointer-events:auto;border-left:4px solid;display:flex;align-items:center;gap:12px}
+    .toast.show{transform:translateX(0)}
+    .toast.success{border-left-color:#10b981;background:linear-gradient(135deg,#ecfdf5,#f0fdf4)}
+    .toast.error{border-left-color:#ef4444;background:linear-gradient(135deg,#fef2f2,#fef7f7)}
+    .toast.warning{border-left-color:#f59e0b;background:linear-gradient(135deg,#fffbeb,#fefce8)}
+    .toast.info{border-left-color:#3b82f6;background:linear-gradient(135deg,#eff6ff,#f0f9ff)}
+    .toast-icon{font-size:20px;flex-shrink:0}
+    .toast-title{font-weight:600;margin-bottom:2px;font-size:14px}
+    .toast-message{font-size:13px;opacity:.8;line-height:1.4}
+    .toast-close{background:none;border:none;font-size:18px;cursor:pointer;opacity:.5;transition:opacity .2s;flex-shrink:0}
+    .toast-close:hover{opacity:1}
+    .toast-progress{position:absolute;bottom:0;left:0;height:3px;background:rgba(0,0,0,.1);border-radius:0 0 12px 12px;animation:toast-progress 4s linear forwards}
+    @keyframes toast-progress{from{width:100%}to{width:0}}
+    .success .toast-progress{background:#10b981}
+    .error .toast-progress{background:#ef4444}
+    .warning .toast-progress{background:#f59e0b}
+    .info .toast-progress{background:#3b82f6}
+
+    .logo-container{display:flex;align-items:center;gap:12px}
+    .logo-image{height:48px;width:auto;background:#fff;border-radius:8px;padding:4px;object-fit:contain;flex-shrink:0}
+    .logo-image.circular{border-radius:50%;width:48px;height:48px}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+<header class="bg-main text-white shadow-lg">
+  <div class="container mx-auto px-4 py-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4 space-x-reverse">
+        <div class="logo-container">
+          <div id="educationLogo"
+               class="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6-Vq-W1kYDrap9R9evZFp4qMiFYqXT6hk3A&s"
+               style="width:clamp(56px,6.5vw,80px);height:clamp(56px,6.5vw,80px);aspect-ratio:1/1;background:#fff;border-radius:12px;padding:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+            وزارة التعليم
+          </div>
+          <div id="schoolLogo"
+               class="https://mwahib.edu.sa/wp-content/uploads/2022/02/Artboard-%D9%A1.png"
+               style="width:clamp(56px,6.5vw,80px);height:clamp(56px,6.5vw,80px);aspect-ratio:1/1;background:#fff;border-radius:12px;padding:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+            مواهب التربية
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4 space-x-reverse">
+        <button id="prevWeek" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded">←</button>
+        <div class="text-center">
+          <div id="weekDates" class="font-bold">...</div>
+          <div class="text-sm text-blue-100">...</div>
+          <button id="goToCurrentWeek" class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded mt-1 hidden">العودة للأسبوع الحالي</button>
+        </div>
+        <button id="nextWeek" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded">→</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container mx-auto px-4 py-4">
+  <div class="bg-white rounded-lg shadow p-4 mb-4">
+    <div class="grid grid-cols-3 gap-4">
+      <select id="userRole" class="p-2 border rounded">
+        <option value="parent">ولي أمر</option>
+        <option value="teacher">معلم</option>
+      </select>
+      <select id="gradeSelect" class="p-2 border rounded">
+        <option value="1">الأول الابتدائي</option>
+        <option value="2">الثاني الابتدائي</option>
+        <option value="3">الثالث الابتدائي</option>
+        <option value="4">الرابع الابتدائي</option>
+        <option value="5">الخامس الابتدائي</option>
+        <option value="6">السادس الابتدائي</option>
+      </select>
+      <select id="sectionSelect" class="p-2 border rounded">
+        <option value="أ">أ</option><option value="ب">ب</option><option value="ج">ج</option><option value="د">د</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow overflow-x-auto">
+    <table class="w-full min-w-[600px]">
+      <thead class="bg-main text-white">
+        <tr>
+          <th class="p-3 text-right">اليوم</th>
+          <th class="p-3">الأولى</th><th class="p-3">الثانية</th><th class="p-3">الثالثة</th>
+          <th class="p-3">الرابعة</th><th class="p-3">الخامسة</th><th class="p-3">السادسة</th><th class="p-3">السابعة</th>
+        </tr>
+      </thead>
+      <tbody id="scheduleBody"></tbody>
+    </table>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 mb-4 mt-4">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold">📢 الإعلانات</h3>
+      <button id="addAnnouncementBtn" class="hidden bg-main text-white px-4 py-2 rounded">+ إضافة</button>
+    </div>
+    <div id="announcementsList"></div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 mb-4">
+    <h3 class="text-lg font-bold mb-4 text-center">📊 الإحصائيات</h3>
+    <div class="grid grid-cols-4 gap-4 text-center">
+      <div class="bg-main text-white rounded p-4"><div class="text-2xl font-bold" id="completedLessons">0</div><div class="text-sm">مكتملة</div></div>
+      <div class="bg-orange text-white rounded p-4"><div class="text-2xl font-bold" id="pendingLessons">0</div><div class="text-sm">معلقة</div></div>
+      <div class="bg-red text-white rounded p-4"><div class="text-2xl font-bold" id="remainingLessons">35</div><div class="text-sm">متبقية</div></div>
+      <div class="bg-green text-white rounded p-4"><div class="text-2xl font-bold" id="totalSubjects">0</div><div class="text-sm">المواد</div></div>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-main text-white py-6 text-center">
+  <p class="text-lg font-bold mb-2">مواهب التربية - أبها الأهلية © 2025</p>
+  <div class="text-sm text-blue-100">
+    <p class="mb-1">تطوير وتصميم:</p>
+    <p class="font-semibold">أ.طارق أبوعشي • أ.سعود آل زايد</p>
+  </div>
+</footer>
+
+<!-- نافذة تفاصيل الحصة -->
+<div id="lessonModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="bg-main text-white p-4 flex justify-between items-center">
+      <h2 id="modalTitle" class="font-bold">تفاصيل الحصة</h2>
+      <button id="closeModal" class="text-white hover:text-gray-200">✕</button>
+    </div>
+    <div class="p-4">
+      <div id="teacherView" class="hidden space-y-4">
+        <div><label class="block text-sm font-bold mb-1 text-red-600">اسم المادة *</label><input type="text" id="subjectName" class="w-full p-2 border rounded" placeholder="اسم المادة" required></div>
+        <div><label class="block text-sm font-bold mb-1 text-red-600">عنوان الحصة *</label><input type="text" id="lessonTitle" class="w-full p-2 border rounded" placeholder="عنوان الحصة" required></div>
+        <div><label class="block text-sm font-bold mb-1">محتوى الحصة</label><textarea id="lessonContent" rows="3" class="w-full p-2 border rounded" placeholder="محتوى الحصة (اختياري)"></textarea></div>
+        <div><label class="block text-sm font-bold mb-1">الواجبات</label><textarea id="homework" rows="2" class="w-full p-2 border rounded" placeholder="الواجبات (اختياري)"></textarea></div>
+        <div><label class="block text-sm font-bold mb-1">ملاحظات</label><textarea id="notes" rows="2" class="w-full p-2 border rounded" placeholder="ملاحظات (اختياري)"></textarea></div>
+        <div class="flex space-x-2 space-x-reverse">
+          <button id="saveLesson" class="flex-1 bg-green text-white p-2 rounded">حفظ</button>
+          <button id="cancelEdit" class="flex-1 bg-gray-500 text-white p-2 rounded">إلغاء</button>
+        </div>
+        <button id="deleteLesson" class="w-full mt-2 bg-red text-white p-2 rounded hidden">حذف الحصة</button> <!-- NEW -->
+      </div>
+      <div id="parentView" class="hidden"><div id="lessonDetails"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- تسجيل دخول المعلم -->
+<div id="teacherLoginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-sm w-full">
+    <div class="bg-main text-white p-4 text-center"><h2 class="font-bold">تسجيل دخول المعلم</h2></div>
+    <div class="p-4 space-y-4">
+      <div class="relative">
+        <input type="password" id="teacherPassword" class="w-full p-2 border rounded" placeholder="كلمة المرور">
+        <div class="absolute left-2 top-2 text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+        </div>
+      </div>
+      <div id="passwordError" class="hidden text-red-600 text-sm">كلمة المرور غير صحيحة</div>
+      <div class="flex space-x-2 space-x-reverse">
+        <button id="confirmLogin" class="flex-1 bg-main text-white p-2 rounded">دخول</button>
+        <button id="cancelLogin" class="flex-1 bg-gray-500 text-white p-2 rounded">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة الإعلانات -->
+<div id="announcementModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-md w-full">
+    <div class="bg-main text-white p-4 flex justify-between items-center">
+      <h2 class="font-bold">إضافة إعلان جديد</h2>
+      <button id="closeAnnouncementModal" class="text-white hover:text-gray-200">✕</button>
+    </div>
+    <div class="p-4 space-y-4">
+      <div><label class="block text-sm font-bold mb-1 text-red-600">عنوان الإعلان *</label><input type="text" id="announcementTitle" class="w-full p-2 border rounded" placeholder="عنوان الإعلان" required></div>
+      <div><label class="block text-sm font-bold mb-1 text-red-600">محتوى الإعلان *</label><textarea id="announcementContent" rows="3" class="w-full p-2 border rounded" placeholder="محتوى الإعلان" required></textarea></div>
+      <div>
+        <label class="block text-sm font-bold mb-1">فائدة/الغرض من الإعلان</label>
+        <textarea id="announcementPurpose" rows="2" class="w-full p-2 border rounded" placeholder="مثال: تبليغ أولياء الأمور بموعد اختبار – هدفه الاستعداد وإحضار الأدوات."></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-bold mb-1">مرفقات الإعلان (صور/ملفات)</label>
+        <input type="file" id="announcementAttachments" class="w-full border rounded p-2" multiple>
+        <div id="selectedAttachments" class="mt-2 space-y-2 text-sm text-gray-600 hidden"></div>
+      </div>
+      <div class="flex space-x-2 space-x-reverse">
+        <button id="saveAnnouncement" class="flex-1 bg-green text-white p-2 rounded">حفظ</button>
+        <button id="cancelAnnouncement" class="flex-1 bg-gray-500 text-white p-2 rounded">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+  const API_BASE = './api.php';
+
+  let currentWeek = null;
+  let serverCurrentWeek = null;
+  let weekContext = null;
+  let currentGrade = '1';
+  let currentSection = 'أ';
+  let currentRole = 'parent';
+  let isTeacherAuthenticated = false;
+
+  let lessonsData = {};
+  let announcements = [];
+  let isWeekInitialized = false;
+
+  class ToastManager {
+    constructor(){ this.container = document.getElementById('toastContainer'); }
+    show(msg,type='info',title='',duration=4000){
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      const icons = {success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};
+      const titles = {success:title||'نجح!',error:title||'خطأ!',warning:title||'تحذير!',info:title||'معلومة'};
+      t.innerHTML = `
+        <div class="toast-icon">${icons[type]}</div>
+        <div class="toast-content">
+          <div class="toast-title">${titles[type]}</div>
+          <div class="toast-message">${msg}</div>
+        </div>
+        <button class="toast-close">×</button>
+        <div class="toast-progress"></div>`;
+      t.querySelector('.toast-close').onclick = ()=> this.remove(t);
+      this.container.appendChild(t);
+      setTimeout(()=>t.classList.add('show'), 50);
+      setTimeout(()=>this.remove(t), duration);
+      return t;
+    }
+    success(m,t=''){return this.show(m,'success',t)}
+    error(m,t=''){return this.show(m,'error',t)}
+    warning(m,t=''){return this.show(m,'warning',t)}
+    info(m,t=''){return this.show(m,'info',t)}
+    remove(t){ if(!t) return; t.style.transform='translateX(400px)'; setTimeout(()=>t.remove(),300); }
+  }
+  const toastManager = new ToastManager();
+
+  function escapeHtml(v){ if(v==null) return ''; return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+  async function fetchData() {
+    try {
+      const params = new URLSearchParams({
+        action: 'get_data',
+        grade: currentGrade,
+        section: currentSection
+      });
+      if (currentWeek !== null) params.append('week', currentWeek);
+      const res = await fetch(`${API_BASE}?${params.toString()}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'فشل الجلب');
+
+      lessonsData = data.lessons || {};
+      announcements = data.announcements || [];
+
+      if (data.week_context) {
+        weekContext = {
+          week_number: Number(data.week_context.week_number) || null,
+          week_start: data.week_context.week_start || null,
+          week_end: data.week_context.week_end || null
+        };
+      }
+      if (Number.isFinite(Number(data.current_week))) {
+        serverCurrentWeek = Number(data.current_week);
+      } else if (Number.isFinite(weekContext?.week_number)) {
+        serverCurrentWeek = weekContext.week_number;
+      }
+
+      if (!isWeekInitialized) {
+        const req = Number(data.requested_week);
+        currentWeek = Number.isFinite(req) && req > 0 ? req : (serverCurrentWeek || 1);
+        isWeekInitialized = true;
+      }
+
+      renderSchedule();
+      renderAnnouncements();
+      updateWeek();
+    } catch (e) {
+      console.error(e);
+      toastManager.error(e.message || 'تعذّر تحميل البيانات من الخادم','فشل الاتصال');
+    }
+  }
+
+  async function saveLessonToServer(payload){
+    const res = await fetch(`${API_BASE}?action=save_lesson`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  // NEW: حذف حصة من الخادم
+  async function deleteLessonFromServer(payload){
+    const res = await fetch(`${API_BASE}?action=delete_lesson`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  async function saveAnnouncementToServer(formData){
+    const res = await fetch(`${API_BASE}?action=save_announcement`, { method:'POST', body: formData });
+    return res.json();
+  }
+
+  async function deleteAnnouncementFromServer(id){
+    const res = await fetch(`${API_BASE}?action=delete_announcement`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id})
+    });
+    return res.json();
+  }
+
+  function getDisplayedWeek(){ if (Number.isFinite(currentWeek) && currentWeek>0) return currentWeek; if (Number.isFinite(serverCurrentWeek) && serverCurrentWeek>0) return serverCurrentWeek; return 1; }
+  function addDays(d,days){ const r=new Date(d.getTime()); r.setDate(r.getDate()+days); return r; }
+  function parseDate(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); if(!y||!m||!d) return null; return new Date(y,m-1,d); }
+  function formatRange(s,e,loc,opts){ const f=new Intl.DateTimeFormat(loc,opts); return typeof f.formatRange==='function'?f.formatRange(s,e):`${f.format(s)} - ${f.format(e)}`; }
+
+  function buildWeekLabel(weekNumber){
+    const baseWeek = weekContext?.week_number;
+    const baseStart = parseDate(weekContext?.week_start);
+    let startDate=null,endDate=null;
+    if (Number.isFinite(baseWeek) && baseStart) {
+      const diff = weekNumber - baseWeek;
+      startDate = addDays(baseStart, diff*7);
+      endDate   = addDays(startDate, 4);
+    }
+    if (!startDate || !endDate) return {label:`الأسبوع ${weekNumber}`,gregorian:null,hijri:null};
+
+    const gregorian = formatRange(startDate,endDate,'ar-SA-u-ca-gregory',{day:'numeric',month:'long'});
+    const hijri     = formatRange(startDate,endDate,'ar-SA-u-ca-islamic',{day:'numeric',month:'long'});
+    return {label:`الأسبوع ${weekNumber}`,gregorian,hijri};
+  }
+
+  function updateWeek(){
+    const wk = getDisplayedWeek();
+    const info = buildWeekLabel(wk);
+    document.getElementById('weekDates').textContent = info.gregorian ? `${info.gregorian} م • ${info.label}` : info.label;
+    const sub = document.querySelector('#weekDates').nextElementSibling;
+    sub.textContent = info.hijri ? `${info.hijri} هـ` : (wk===(serverCurrentWeek||wk)?'الأسبوع الحالي':'أسبوع سابق/قادم');
+    updateCurrentWeekButton();
+  }
+  function updateCurrentWeekButton(){
+    const btn = document.getElementById('goToCurrentWeek');
+    if(!Number.isFinite(serverCurrentWeek)) { btn.classList.add('hidden'); return; }
+    btn.classList.toggle('hidden', getDisplayedWeek()===serverCurrentWeek);
+  }
+
+  function renderSchedule(){
+    const days = ['sunday','monday','tuesday','wednesday','thursday'];
+    const dayNames = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+
+    const html = days.map((day, i)=>{
+      const tds = Array.from({length:7}, (_,j)=>{
+        const period = j+1;
+        const L = lessonsData[day]?.[period] || null;
+        const subject = L?.subject_name || '';
+        const title   = L?.lesson_title || '';
+        const isComplete = !!(subject && title);
+
+        if(!subject){
+          return currentRole==='teacher' && isTeacherAuthenticated
+            ? `<td class="p-2"><div class="card cursor-pointer p-3 border-2 border-dashed border-blue-400 bg-blue-50 rounded text-center" onclick="openModal('${day}',${period},'')">+ إضافة</div></td>`
+            : `<td class="p-2"><div class="p-3 bg-gray-100 rounded text-center text-gray-500">فارغ</div></td>`;
+        }
+        return `<td class="p-2"><div class="card cursor-pointer p-3 ${isComplete?'bg-main':'bg-gray-400'} text-white rounded text-center" onclick="openModal('${day}',${period},'${subject.replace(/"/g,'&quot;')}')">${subject}<br><small>${title || 'بدون محتوى'}</small></div></td>`;
+      }).join('');
+      return `<tr><td class="p-3 font-bold bg-gray-100">${dayNames[i]}</td>${tds}</tr>`;
+    }).join('');
+
+    document.getElementById('scheduleBody').innerHTML = html;
+    updateStats();
+  }
+
+  function updateStats(){
+    let completed=0,pending=0,total=0;
+    const subjects=new Set();
+    ['sunday','monday','tuesday','wednesday','thursday'].forEach(day=>{
+      const dl=lessonsData[day]||{};
+      for(const p in dl){
+        const L=dl[p];
+        const hs=!!L.subject_name, ht=!!L.lesson_title;
+        if(hs){ subjects.add(L.subject_name); total++; }
+        if(hs&&ht) completed++; else if(hs) pending++;
+      }
+    });
+    const remaining=35-total;
+    document.getElementById('completedLessons').textContent=completed;
+    document.getElementById('pendingLessons').textContent=pending;
+    document.getElementById('remainingLessons').textContent=remaining;
+    document.getElementById('totalSubjects').textContent=subjects.size;
+  }
+
+  function openModal(day,period,subject){
+    const modal=document.getElementById('lessonModal');
+    const L=lessonsData[day]?.[period]||null;
+    document.getElementById('modalTitle').textContent = subject ? `${subject} - الحصة ${period}` : 'إضافة مادة جديدة';
+    modal.dataset.day=day; modal.dataset.period=period;
+
+    if(currentRole==='teacher' && isTeacherAuthenticated){
+      document.getElementById('teacherView').classList.remove('hidden');
+      document.getElementById('parentView').classList.add('hidden');
+      document.getElementById('subjectName').value = subject || (L?.subject_name || '');
+      document.getElementById('lessonTitle').value = L?.lesson_title || '';
+      document.getElementById('lessonContent').value = L?.lesson_content || '';
+      document.getElementById('homework').value = L?.homework || '';
+      document.getElementById('notes').value = L?.notes || '';
+
+      // NEW: زر حذف الحصة
+      const delBtn = document.getElementById('deleteLesson');
+      const hasData = !!(L?.subject_name || L?.lesson_title || L?.lesson_content || L?.homework || L?.notes);
+      if (hasData){
+        delBtn.classList.remove('hidden');
+        delBtn.onclick = async ()=>{
+          if(!confirm('هل أنت متأكد من حذف هذه الحصة؟')) return;
+          try{
+            const payload={
+              grade: parseInt(currentGrade,10),
+              section: currentSection,
+              week: getDisplayedWeek(),
+              day, period
+            };
+            const res = await deleteLessonFromServer(payload);
+            if(!res.success) throw new Error(res.message||'تعذّر حذف الحصة');
+            if(lessonsData[day]) delete lessonsData[day][period];
+            document.getElementById('lessonModal').classList.add('hidden');
+            renderSchedule();
+            toastManager.success('تم حذف الحصة بنجاح');
+          }catch(e){
+            console.error(e);
+            toastManager.error(e.message||'خطأ أثناء حذف الحصة','فشل الحذف');
+          }
+        };
+      } else {
+        delBtn.classList.add('hidden');
+        delBtn.onclick = null;
+      }
+
+    }else{
+      document.getElementById('teacherView').classList.add('hidden');
+      document.getElementById('parentView').classList.remove('hidden');
+      const details=document.getElementById('lessonDetails');
+      if(L?.subject_name && L?.lesson_title){
+        details.innerHTML = `
+          <div class="space-y-4">
+            <div class="bg-green-50 border border-green-200 p-4 rounded"><h4 class="font-bold text-green-800 mb-2">✅ الحصة مكتملة</h4></div>
+            <div class="bg-blue-50 p-4 rounded"><h4 class="font-bold mb-2">📚 عنوان الحصة:</h4><p class="bg-white p-3 rounded border">${L.lesson_title}</p></div>
+            <div class="bg-purple-50 p-4 rounded"><h4 class="font-bold mb-2">📖 محتوى الحصة:</h4><p class="bg-white p-3 rounded border">${L.lesson_content||''}</p></div>
+            ${L.homework?`<div class="bg-yellow-50 p-4 rounded"><h4 class="font-bold mb-2">📝 الواجبات:</h4><p class="bg-white p-3 rounded border">${L.homework}</p></div>`:''}
+            ${L.notes?`<div class="bg-gray-50 p-4 rounded"><h4 class="font-bold mb-2">📋 ملاحظات:</h4><p class="bg-white p-3 rounded border">${L.notes}</p></div>`:''}
+          </div>`;
+      }else{
+        details.innerHTML = `<div class="bg-yellow-50 border border-yellow-200 p-6 rounded text-center">
+          <div class="text-yellow-600 text-4xl mb-4">⏳</div>
+          <h4 class="font-bold text-yellow-800 mb-2">لم يتم إضافة محتوى للحصة بعد</h4>
+          <p class="text-yellow-700">سيقوم المعلم بإضافة تفاصيل الحصة قريباً</p></div>`;
+      }
+    }
+    modal.classList.remove('hidden');
+  }
+
+  async function saveLesson(){
+    const modal=document.getElementById('lessonModal');
+    const day=modal.dataset.day;
+    const period=parseInt(modal.dataset.period,10);
+
+    const subject=document.getElementById('subjectName').value.trim();
+    const title=document.getElementById('lessonTitle').value.trim();
+    if(!subject){ toastManager.error('يرجى إدخال اسم المادة','حقل مطلوب'); return; }
+    if(!title){ toastManager.error('يرجى إدخال عنوان الحصة','حقل مطلوب'); return; }
+
+    const payload={
+      grade: parseInt(currentGrade,10),
+      section: currentSection,
+      week: getDisplayedWeek(),
+      day, period,
+      subject, title,
+      content: document.getElementById('lessonContent').value.trim(),
+      homework: document.getElementById('homework').value.trim(),
+      notes: document.getElementById('notes').value.trim(),
+    };
+
+    try{
+      const res=await saveLessonToServer(payload);
+      if(!res.success) throw new Error(res.message||'خطأ غير معروف');
+      lessonsData[day]??={};
+      lessonsData[day][period]={
+        subject_name: payload.subject,
+        lesson_title: payload.title,
+        lesson_content: payload.content,
+        homework: payload.homework,
+        notes: payload.notes
+      };
+      document.getElementById('lessonModal').classList.add('hidden');
+      renderSchedule();
+      toastManager.success('تم حفظ جميع تفاصيل الحصة','حُفظت الحصة بنجاح!');
+    }catch(e){ console.error(e); toastManager.error(e.message||'تعذّر حفظ الحصة','خطأ في الخادم'); }
+  }
+
+  function renderAnnouncements(){
+    const isTeacher=(currentRole==='teacher' && isTeacherAuthenticated);
+    const container=document.getElementById('announcementsList');
+    if(!announcements.length){ container.innerHTML='<div class="text-gray-500 text-center p-4">لا توجد إعلانات</div>'; return; }
+
+    container.innerHTML = announcements.map(a=>{
+      const contentHtml = escapeHtml(a.content||'').replace(/\n/g,'<br>');
+      const titleHtml   = escapeHtml(a.title||'');
+      const purposeHtml = escapeHtml(a.purpose||'');
+      const dateHtml    = escapeHtml(a.date||'');
+      const weekBadge   = (a.week!=null)?`<span class="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded ml-2">الأسبوع ${a.week}</span>`:'';
+
+      const purposeBlock = purposeHtml
+        ? `<div class="bg-green-50 border border-green-200 rounded p-3 mt-3">
+             <div class="font-semibold text-green-800 mb-1">🎯 فائدة/الغرض:</div>
+             <div class="text-green-900 leading-6">${purposeHtml.replace(/\n/g,'<br>')}</div>
+           </div>`
+        : '';
+
+      const attachmentsHtml = Array.isArray(a.attachments)&&a.attachments.length
+        ? `<div class="mt-3 border-t border-blue-100 pt-3 space-y-3">
+            ${a.attachments.map(att=>{
+              const fileName=escapeHtml(att.file_name||'مرفق');
+              const fileUrl =escapeHtml(att.file_path||'#');
+              const fileType=(att.file_type||'').toLowerCase();
+
+              if(fileType.startsWith('image/')){
+                return `<a href="${fileUrl}" target="_blank" rel="noopener" class="block group">
+                          <div class="overflow-hidden rounded-lg border border-blue-200">
+                            <img src="${fileUrl}" alt="${fileName}" class="w-full max-h-48 object-cover group-hover:opacity-90 transition">
+                          </div>
+                          <div class="mt-1 text-sm text-blue-700">${fileName}</div>
+                        </a>`;
+              }
+              if(fileType.includes('pdf') || fileUrl.toLowerCase().endsWith('.pdf')){
+                return `<div class="bg-white border border-blue-200 rounded-lg overflow-hidden">
+                          <div class="bg-blue-50 px-3 py-2 flex items-center justify-between">
+                            <span class="text-sm text-blue-700 font-medium">ملف PDF</span>
+                            <a href="${fileUrl}" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">فتح كامل</a>
+                          </div>
+                          <div class="h-56 overflow-hidden">
+                            <iframe src="${fileUrl}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full" title="${fileName}" loading="lazy"></iframe>
+                          </div>
+                          <div class="px-3 py-2 text-sm text-blue-700 border-t border-blue-100">${fileName}</div>
+                        </div>`;
+              }
+              return `<a href="${fileUrl}" target="_blank" rel="noopener" class="flex items-center gap-2 bg-white border border-blue-200 rounded px-3 py-2 hover:bg-blue-50 transition">
+                        <span class="text-xl">📎</span>
+                        <span class="text-sm text-blue-700 break-words">${fileName}</span>
+                      </a>`;
+            }).join('')}
+          </div>` : '';
+
+      return `<div class="bg-blue-50 border border-blue-200 rounded p-4 mb-2">
+        <div class="flex justify-between items-start gap-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <h4 class="font-bold">${titleHtml}</h4>
+              ${weekBadge}
+            </div>
+            <p class="mt-2 leading-6">${contentHtml}</p>
+            ${purposeBlock}
+            <small class="text-gray-500 block mt-2">${dateHtml}</small>
+            ${attachmentsHtml}
+          </div>
+          ${isTeacher?`<button class="text-red-500 hover:text-red-700 mr-2" onclick="deleteAnnouncement(${a.id})">🗑️</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function formatFileSize(bytes){ if(!bytes||isNaN(bytes)) return '0 م.ب'; const mb=bytes/1048576; return mb<0.1?(bytes/1024).toFixed(1)+' ك.ب':mb.toFixed(2)+' م.ب'; }
+  function updateSelectedAttachments(){
+    const input=document.getElementById('announcementAttachments');
+    const box=document.getElementById('selectedAttachments');
+    const files=input?.files?Array.from(input.files):[];
+    if(!files.length){ box.classList.add('hidden'); box.innerHTML=''; return; }
+    box.classList.remove('hidden');
+    box.innerHTML = files.map(f=>`<div class="flex items-center justify-between bg-blue-50 border border-blue-100 rounded px-3 py-2">
+      <span class="truncate max-w-[70%]">${escapeHtml(f.name)}</span>
+      <span class="text-xs text-gray-500">${formatFileSize(f.size)}</span>
+    </div>`).join('');
+  }
+
+  function closeAnnouncementModal(){
+    document.getElementById('announcementModal').classList.add('hidden');
+    const input=document.getElementById('announcementAttachments');
+    if(input){ input.value=''; updateSelectedAttachments(); }
+  }
+
+  async function saveAnnouncement(){
+    const title=document.getElementById('announcementTitle').value.trim();
+    const content=document.getElementById('announcementContent').value.trim();
+    const purpose=document.getElementById('announcementPurpose').value.trim();
+    const files=document.getElementById('announcementAttachments');
+    if(!title){ toastManager.error('يرجى إدخال عنوان الإعلان','حقل مطلوب'); return; }
+    if(!content){ toastManager.error('يرجى إدخال محتوى الإعلان','حقل مطلوب'); return; }
+    try{
+      const fd=new FormData();
+      fd.append('title',title);
+      fd.append('content',content);
+      fd.append('purpose',purpose);
+      fd.append('grade',currentGrade);
+      fd.append('section',currentSection);
+      fd.append('week', String(getDisplayedWeek()));
+      if(files?.files){ Array.from(files.files).forEach(f=>fd.append('attachments[]',f)); }
+
+      const res=await saveAnnouncementToServer(fd);
+      if(!res.success) throw new Error(res.message||'خطأ غير معروف');
+
+      const savedWeek = Number.isFinite(Number(res.week)) ? Number(res.week) : getDisplayedWeek();
+      announcements.unshift({
+        id: res.id, title, content, purpose, date: res.date, week: savedWeek,
+        attachments: res.attachments || []
+      });
+      closeAnnouncementModal();
+      renderAnnouncements();
+      toastManager.success('تم نشر الإعلان لجميع أولياء الأمور','أُضيف الإعلان بنجاح!');
+      if (res.attachment_warnings?.length){ toastManager.warning(res.attachment_warnings.join('<br>'),'تنبيه المرفقات'); }
+    }catch(e){ console.error(e); toastManager.error(e.message||'تعذّر حفظ الإعلان','خطأ في الخادم'); }
+  }
+
+  async function deleteAnnouncement(id){
+    if(!confirm('هل أنت متأكد من حذف هذا الإعلان؟')) return;
+    try{
+      const res=await deleteAnnouncementFromServer(id);
+      if(!res.success) throw new Error(res.message||'خطأ غير معروف');
+      announcements=announcements.filter(a=>a.id!==id);
+      renderAnnouncements();
+      toastManager.success('تم حذف الإعلان بنجاح');
+    }catch(e){ console.error(e); toastManager.error(e.message||'تعذّر حذف الإعلان','خطأ في الخادم'); }
+  }
+
+  function updateUI(){
+    document.getElementById('addAnnouncementBtn').classList.toggle('hidden', !(currentRole==='teacher' && isTeacherAuthenticated));
+    renderSchedule(); renderAnnouncements();
+  }
+  function showLogin(){ document.getElementById('teacherLoginModal').classList.remove('hidden'); }
+  function login(){
+    const pass=document.getElementById('teacherPassword').value.trim();
+    const err=document.getElementById('passwordError');
+    if(pass==='13542'){
+      isTeacherAuthenticated=true; currentRole='teacher';
+      document.getElementById('userRole').value='teacher';
+      document.getElementById('teacherLoginModal').classList.add('hidden');
+      err.classList.add('hidden'); document.getElementById('teacherPassword').value='';
+      updateUI(); toastManager.success('مرحباً بك في واجهة المعلم','تم تسجيل الدخول بنجاح!');
+    }else{ err.classList.remove('hidden'); err.textContent='كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى'; }
+  }
+
+  async function goToPreviousWeek(){ const t=getDisplayedWeek(); if(t>1){ currentWeek=t-1; updateWeek(); await fetchData(); } }
+  async function goToNextWeek(){ const t=getDisplayedWeek(); if(t<52){ currentWeek=t+1; updateWeek(); await fetchData(); } }
+  async function goToCurrentWeek(){ if(serverCurrentWeek!=null){ currentWeek=serverCurrentWeek; updateWeek(); await fetchData(); } }
+
+  function loadLogos(){
+    const educationImg=new Image();
+    educationImg.onload=function(){ const d=document.getElementById('educationLogo'); d.innerHTML=''; d.appendChild(this); this.className='w-full h-full object-contain'; };
+    educationImg.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS6-Vq-W1kYDrap9R9evZFp4qMiFYqXT6hk3A&s';
+
+    const schoolImg=new Image();
+    schoolImg.onload=function(){ const d=document.getElementById('schoolLogo'); d.innerHTML=''; d.appendChild(this); this.className='w-full h-full object-contain'; };
+    schoolImg.src='https://mwahib.edu.sa/wp-content/uploads/2022/02/Artboard-%D9%A1.png';
+  }
+
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    document.getElementById('gradeSelect').value=currentGrade;
+    document.getElementById('sectionSelect').value=currentSection;
+
+    document.getElementById('userRole').addEventListener('change', function(){
+      const v=this.value;
+      if(v==='teacher' && !isTeacherAuthenticated){ showLogin(); this.value='parent'; }
+      else { currentRole=v; updateUI(); }
+    });
+    document.getElementById('gradeSelect').addEventListener('change', async function(){ currentGrade=this.value; await fetchData(); });
+    document.getElementById('sectionSelect').addEventListener('change', async function(){ currentSection=this.value; await fetchData(); });
+
+    document.getElementById('prevWeek').addEventListener('click', goToPreviousWeek);
+    document.getElementById('nextWeek').addEventListener('click', goToNextWeek);
+    document.getElementById('goToCurrentWeek').addEventListener('click', goToCurrentWeek);
+
+    document.getElementById('closeModal').addEventListener('click', ()=> document.getElementById('lessonModal').classList.add('hidden'));
+    document.getElementById('cancelEdit').addEventListener('click', ()=> document.getElementById('lessonModal').classList.add('hidden'));
+    document.getElementById('saveLesson').addEventListener('click', saveLesson);
+
+    document.getElementById('confirmLogin').addEventListener('click', login);
+    document.getElementById('cancelLogin').addEventListener('click', ()=>{ document.getElementById('teacherLoginModal').classList.add('hidden'); document.getElementById('userRole').value='parent'; });
+    document.getElementById('teacherPassword').addEventListener('keypress', e=>{ if(e.key==='Enter') login(); });
+
+    const attachmentsInput=document.getElementById('announcementAttachments');
+    attachmentsInput?.addEventListener('change', updateSelectedAttachments);
+
+    document.getElementById('addAnnouncementBtn').addEventListener('click', ()=>{
+      document.getElementById('announcementTitle').value='';
+      document.getElementById('announcementContent').value='';
+      document.getElementById('announcementPurpose').value='';
+      attachmentsInput.value=''; updateSelectedAttachments();
+      document.querySelector('#announcementModal h2').textContent='إضافة إعلان جديد';
+      const saveBtn=document.getElementById('saveAnnouncement');
+      saveBtn.textContent='حفظ';
+      saveBtn.onclick=saveAnnouncement;
+      document.getElementById('announcementModal').classList.remove('hidden');
+    });
+    document.getElementById('closeAnnouncementModal').addEventListener('click', closeAnnouncementModal);
+    document.getElementById('cancelAnnouncement').addEventListener('click', closeAnnouncementModal);
+
+    loadLogos();
+    updateWeek();
+    toastManager.info('مرحباً بك في نظام الجدول الدراسي المتصل بالخادم' ,'أهلاً وسهلاً');
+    await fetchData();
+  });
+</script>
+</body>
+</html>
