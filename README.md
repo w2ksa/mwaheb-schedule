@@ -5,8 +5,6 @@ A simple class schedule system used in **Mwahib Education School**, designed to 
 ### 🌐 Live Website  
 https://mwaheb11.com/
 
-### 📸 Preview  
-Screenshots of the system are included in this repository.
 
 ### 🎯 Key Idea  
 The system provides a clean and organized interface to view class schedules for different grades, helping the school community access information quickly.
