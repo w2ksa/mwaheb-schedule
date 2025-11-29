@@ -10,7 +10,7 @@ https://mwaheb11.com/
 The system provides a clean and organized interface to view class schedules for different grades, helping the school community access information quickly.
 
 ### 👤 Developer  
-**Saud Al Zayed**  **Tareq Aboushi**  
+**Saud Al Zayed** & **Tareq Aboushi**  
 
 Web Developer & System Developer
 
